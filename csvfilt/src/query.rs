@@ -1,4 +1,8 @@
-pub struct QueryString(pub String);
+pub struct QueryString(String);
+
+impl QueryString {
+    pub fn new(s:String) -> Self { QueryString(s) }
+}
 
 pub enum Comp {
     Eq,
@@ -22,25 +26,41 @@ enum Query {
     }
 }
 
-pub struct Schema (());
-
-pub struct QueryFn (Box<Fn(Vec<String>) -> bool>);
-
 use std::error::{Error};
 
-fn query_to_fn(q:Query, s:&Schema) -> Result<QueryFn, Box<Error>> 
-{
-    Ok(QueryFn(Box::new(|row|{ true })))
+impl Query {
+    pub fn from_qstring(qs:&QueryString) -> Result<Box<Query>, Box<Error>>
+    {
+        // TODO
+        Ok(Box::new(Query::ColumnOp {index : 0, comparator : Comp::Eq, value : String::default()})) // dummy
+    }
 }
 
-fn qstring_to_query(qs:&QueryString) -> Result<Box<Query>, Box<Error>>
-{
-    Ok(Box::new(Query::ColumnOp {index : 0, comparator : Comp::Eq, value : String::default()})) // dummy
+pub struct Schema (());
+
+impl Schema {
+    pub fn from_header(header:&Vec<String>) -> Schema {
+        Schema(())
+    }
 }
+
+pub struct QueryFn (Box<Fn(&Vec<String>) -> bool>);
+
+impl QueryFn {
+    fn from_query(q:Query, s:&Schema) -> Result<QueryFn, Box<Error>> 
+    {
+        Ok(QueryFn(Box::new(|row|{ true })))
+    }
+
+    pub fn matches(&self, row:&Vec<String>) -> bool {
+        self.0(row)
+    }
+}
+
 
 pub fn parse(q:&QueryString, s:&Schema) -> Result<QueryFn, Box<Error>>
 {
-    let query = qstring_to_query(q)?;
+    let query = Query::from_qstring(q)?;
 
-    query_to_fn(*query, s)
+    QueryFn::from_query(*query, s)
 }

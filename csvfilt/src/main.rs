@@ -9,7 +9,7 @@ use std::fs::File;
 use std::process;
 use std::path::PathBuf;
 
-use query::{QueryString, QueryFn};
+use query::{QueryString, QueryFn, Schema};
 
 enum FileSource {
     ReadFromFile(PathBuf)
@@ -29,7 +29,7 @@ fn read_args() -> Result<Args, Box<Error>> {
             let p = args[1].clone();
             Ok(Args {
                 source : FileSource::ReadFromFile(From::from(p)), 
-                query : query::QueryString(q.unwrap())
+                query : QueryString::new(q.unwrap())
                 })
         }
         x => {
@@ -57,7 +57,11 @@ fn run() -> Result<(), Box<Error>> {
 
     let headers = reader.headers()?.clone();
 
+    let schema = Schema::from_header(&headers);
+
     writer.write(headers.iter())?;
+    
+    let q = query::parse(&args.query, &schema)?;
 
     for res in reader.records() {
         let row = res?;
