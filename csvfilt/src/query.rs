@@ -12,9 +12,9 @@ pub enum Comp {
 
 enum Query {
     Op {
-        index : i32,
+        a : String,
         comparator : Comp,
-        value : String
+        b : String
     },
     And {
         q1 : Box<Query>,
