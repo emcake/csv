@@ -36,15 +36,9 @@ impl Query {
     }
 }
 
-pub struct Schema (());
-
-impl Schema {
-    pub fn from_header(header:&Vec<String>) -> Schema {
-        Schema(())
-    }
-}
-
 pub struct QueryFn (Box<Fn(&Vec<String>) -> bool>);
+
+use schema::Schema;
 
 impl QueryFn {
     fn from_query(q:Query, s:&Schema) -> Result<QueryFn, Box<Error>> 
