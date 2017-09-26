@@ -1,0 +1,7 @@
+[package]
+name = "csvfilt"
+version = "0.1.0"
+authors = ["matt <matt@mattkemp.co.uk>"]
+
+[dependencies]
+csv = "*"
