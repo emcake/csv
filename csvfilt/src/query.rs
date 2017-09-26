@@ -11,7 +11,7 @@ pub enum Comp {
 }
 
 enum Query {
-    ColumnOp {
+    Op {
         index : i32,
         comparator : Comp,
         value : String
