@@ -7,7 +7,9 @@ use std::fs::File;
 use std::process;
 use std::path::PathBuf;
 
-struct QueryString (String);
+mod query;
+
+use query::QueryString;
 
 enum FileSource {
     ReadFromFile(PathBuf)
@@ -27,7 +29,7 @@ fn read_args() -> Result<Args, Box<Error>> {
             let p = args[1].clone();
             Ok(Args {
                 source : FileSource::ReadFromFile(From::from(p)), 
-                query : QueryString(q.unwrap())
+                query : query::QueryString(q.unwrap())
                 })
         }
         x => {
