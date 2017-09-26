@@ -5,11 +5,10 @@ mod query;
 use std::env;
 use std::error::Error;
 use std::ffi::OsString;
-use std::fs::File;
 use std::process;
 use std::path::PathBuf;
 
-use query::{QueryString, QueryFn, Schema};
+use query::{QueryString, Schema};
 
 enum FileSource {
     ReadFromFile(PathBuf)
@@ -65,7 +64,9 @@ fn run() -> Result<(), Box<Error>> {
 
     for res in reader.records() {
         let row = res?;
-        writer.write(row.iter())?;
+        if q.matches(&row) {
+            writer.write(row.iter())?;
+        }
     }
 
     writer.flush()?;
