@@ -66,7 +66,8 @@ fn run() -> Result<(), Box<Error>> {
 
     for res in reader.records() {
         let row = res?;
-        if q.matches(&row) {
+        let matches = q.matches(&row)?;
+        if matches {
             writer.write(row.iter())?;
         }
     }
