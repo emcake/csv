@@ -1,4 +1,4 @@
-pub struct QueryString(String);
+pub struct QueryString(pub String);
 
 pub enum Comp {
     Eq,
@@ -22,9 +22,9 @@ enum Query {
     }
 }
 
-struct Schema (());
+pub struct Schema (());
 
-struct QueryFn (Box<Fn(Vec<String>) -> bool>);
+pub struct QueryFn (Box<Fn(Vec<String>) -> bool>);
 
 use std::error::{Error};
 

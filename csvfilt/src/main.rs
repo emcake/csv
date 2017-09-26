@@ -1,5 +1,7 @@
 extern crate csv;
 
+mod query;
+
 use std::env;
 use std::error::Error;
 use std::ffi::OsString;
@@ -7,9 +9,7 @@ use std::fs::File;
 use std::process;
 use std::path::PathBuf;
 
-mod query;
-
-use query::QueryString;
+use query::{QueryString, QueryFn};
 
 enum FileSource {
     ReadFromFile(PathBuf)
