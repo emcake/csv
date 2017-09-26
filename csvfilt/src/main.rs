@@ -19,13 +19,15 @@ struct Args {
 }
 
 fn read_args() -> Result<Args, Box<Error>> {
-    match env::args_os().count() {
+    let args : Vec<OsString> = 
+        env::args_os().skip(1).collect(); // first arg is the exe
+    match args.len() {
         2 => {
-            let q = env::args_os().nth(1).unwrap();
-            let p = env::args_os().nth(2).unwrap();
+            let q = args[0].clone().into_string();
+            let p = args[1].clone();
             Ok(Args {
                 source : FileSource::ReadFromFile(From::from(p)), 
-                query : Query(q.into_string().unwrap())
+                query : Query(q.unwrap())
                 })
         }
         x => {
@@ -33,7 +35,7 @@ fn read_args() -> Result<Args, Box<Error>> {
                 From::from(
                     format!("Expected 2 args, received {:?} : {:?}", 
                         x,
-                        env::args_os().collect::<Vec<_>>()
+                        args
             )))
         }
     }
