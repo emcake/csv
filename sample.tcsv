@@ -1,0 +1,7 @@
+stock[string],price[float],size[int],executed[bool]
+"VOD.L", 99.96, 100, true
+"AAPL.O", 101.5, 100, true
+"VOD.L", 99.96, 100, false
+"AAPL.O", 102.7, 200, true
+"MSFT.O", 186.22, 500, false
+"VOD.L", 99.96, 100, true
