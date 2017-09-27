@@ -101,7 +101,7 @@ impl Schema {
         ])
     }
 
-    pub fn try_find_col(&self, name:String) -> Option<(usize, &ColItem)> {
-        self.0.iter().enumerate().find(|&x|{x.1.name == name})
+    pub fn try_find_col(&self, name:&String) -> Option<(usize, &ColItem)> {
+        self.0.iter().enumerate().find(|&x|{x.1.name == *name})
     }
 }
