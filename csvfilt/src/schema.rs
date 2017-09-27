@@ -1,104 +1,144 @@
-#[derive(PartialEq)]
-pub enum ColType {
-    TString,
-    TInt,
-    TFloat,
-    TBool
-}
-
 use std::error::Error;
 
-impl ColType {
-    pub fn from_name(s:String) -> Result<ColType, Box<Error>>
+use std::str::FromStr;
+
+pub trait SupportedColType : FromStr
+{
+    fn str_type() -> String;
+
+    fn parse_err(value:&String) -> Box<Error> {
+        From::from(
+            format!(
+                "Could not make a {:?} from '{:?}'",
+                Self::str_type(),
+                value
+            )
+        )
+    }
+}
+
+type OpDouble = Result<Box<Fn(&String, &String) -> Result<bool, Box<Error>>>, Box<Error>>;
+type OpSingle = Result<Box<Fn(&String) -> Result<bool, Box<Error>>>, Box<Error>>;
+
+pub trait EqMaker : SupportedColType {
+    fn make_eq() -> OpDouble
     {
-        if s == "string" {
-            Ok(ColType::TString)
-        }
-        else if s == "float" {
-            Ok(ColType::TFloat)
-        }
-        else if s == "int" {
-            Ok(ColType::TInt)
-        }
-        else if s == "bool" {
-            Ok(ColType::TBool)
-        }
-        else {
-            Err(From::from(format!("failed to parse {:?} to a col. type", s)))
+        Err(From::from(format!("{:?} does not support equality comparison", Self::str_type())))
+    }
+    fn make_eq_left_const(left:&String) -> OpSingle
+    {
+        Err(From::from(format!("{:?} does not support equality comparison", Self::str_type())))        
+    }
+}
+
+impl<T : SupportedColType + PartialEq + FromStr + 'static> EqMaker for T
+{
+    fn make_eq() -> OpDouble
+    {
+        Ok(
+            Box::new(
+                |a,b|{ 
+                    let a = a.parse::<T>().map_err(|_|{Self::parse_err(a)})?;
+                    let b = b.parse::<T>().map_err(|_|{Self::parse_err(b)})?;
+                    Ok(a == b)
+                 }
+            ))
+    }
+    fn make_eq_left_const(left:&String) -> OpSingle
+    {
+        let left_c = left.parse::<T>().map_err(|_|{Self::parse_err(left)})?;
+        Ok(
+            Box::new(
+                move |x|{ 
+                    let x = x.parse::<T>().map_err(|_|{Self::parse_err(x)})?;
+                    Ok(left_c == x)
+                 }
+            ))        
+    }
+}
+
+type OpMakerDouble = Box<Fn() -> OpDouble>;
+type OpMakerSingle = Box<Fn(&String) -> OpSingle>;
+
+type MakerPair = (OpMakerDouble, OpMakerSingle);
+
+pub struct ColType {
+    pub name : String,
+    pub eq : MakerPair
+}
+
+impl ColType {
+    fn make<T : EqMaker + SupportedColType + 'static>() -> Self {
+        ColType { name : <T as SupportedColType>::str_type(), eq : (Box::new(<T as EqMaker>::make_eq), Box::new(<T as EqMaker>::make_eq_left_const)) }
+    }
+}
+
+impl SupportedColType for String {
+    fn str_type() -> String {
+        "string".to_owned()
+    }
+}
+
+impl SupportedColType for f32 {
+    fn str_type() -> String {
+        "float".to_owned()
+    }
+}
+
+impl SupportedColType for bool {
+    fn str_type() -> String {
+        "bool".to_owned()
+    }
+}
+
+impl SupportedColType for i32 {
+    fn str_type() -> String {
+        "int".to_owned()
+    }
+}
+
+use std::rc::Rc;
+
+struct ColTypes {
+    pickers : Vec<Rc<ColType>>
+}
+
+impl ColTypes {
+    fn make() -> Self {
+        ColTypes {
+            pickers: vec!(
+                Rc::new(ColType::make::<String>()),
+                Rc::new(ColType::make::<i32>()),
+                Rc::new(ColType::make::<f32>()),
+                Rc::new(ColType::make::<bool>())
+            )
         }
     }
 
-    pub fn make_eq(&self) -> Result<Box<Fn(&String, &String) -> Result<bool, Box<Error>>>, Box<Error>>
+    fn find(&self, name:&String) -> Result<Rc<ColType>, Box<Error>>
     {
-        match self {
-            &ColType::TString =>
-                {
-                    Ok(Box::new(|a,b|{Ok(a == b)}))
-                }
-            &ColType::TFloat =>
-                {
-                    fn parse_float(s:&String) -> Result<f32, Box<Error>> {
-                        match s.parse() 
-                        {
-                            Ok (f) => Ok(f),
-                            Err (e) => Err(Box::new(e))
-                        }
-                    }
-                    Ok(Box::new(|a,b|{
-                        let fa = parse_float(a)?;
-                        let fb = parse_float(b)?;
-                        Ok(fa == fb)
-                    }))
-                }
-            &ColType::TInt =>
-                {
-                    fn parse_int(s:&String) -> Result<i32, Box<Error>> {
-                        match s.parse() 
-                        {
-                            Ok (f) => Ok(f),
-                            Err (e) => Err(Box::new(e))
-                        }
-                    }
-                    Ok(Box::new(|a,b|{
-                        let ia = parse_int(a)?;
-                        let ib = parse_int(b)?;
-                        Ok(ia == ib)
-                    }))
-                }
-            &ColType::TBool =>
-                {
-                    fn parse_bool(s:&String) -> Result<bool, Box<Error>> {
-                        match s.parse() 
-                        {
-                            Ok (f) => Ok(f),
-                            Err (e) => Err(Box::new(e))
-                        }
-                    }
-                    Ok(Box::new(|a,b|{
-                        let ba = parse_bool(a)?;
-                        let bb = parse_bool(b)?;
-                        Ok(ba == bb)
-                    }))
-                }
-        }
+        let o = self.pickers.iter().find(|p|{ p.name == *name }).map(|p|{ p.clone() });
+        o.ok_or(From::from(format!("unable to find type matching '{:?}'", *name)))
     }
 }
 
 pub struct ColItem {
     name : String,
-    pub col_type : ColType
+    pub col_type : Rc<ColType>
 }
 
 pub struct Schema (Vec<ColItem>);
 
 impl Schema {
-    pub fn from_header(header:&Vec<String>) -> Schema {
-        Schema(vec![
-            ColItem { name : "stock".to_owned(), col_type : ColType::TString },
-            ColItem { name : "price".to_owned(), col_type : ColType::TFloat },
-            ColItem { name : "size".to_owned(), col_type : ColType::TInt },
-            ColItem { name : "executed".to_owned(), col_type : ColType::TBool }
-        ])
+    pub fn from_header(header:&Vec<String>) -> Result<Schema, Box<Error>> {
+        let types = ColTypes::make();
+
+        Ok(Schema(vec![
+            ColItem { name : "stock".to_owned(), col_type : types.find(&"string".to_owned())? },
+            ColItem { name : "price".to_owned(), col_type : types.find(&"float".to_owned())? },
+            ColItem { name : "size".to_owned(), col_type :  types.find(&"int".to_owned())? },
+            ColItem { name : "executed".to_owned(), col_type : types.find(&"bool".to_owned())? }
+        ]))
     }
 
     pub fn try_find_col(&self, name:&String) -> Option<(usize, &ColItem)> {

@@ -58,7 +58,7 @@ fn run() -> Result<(), Box<Error>> {
 
     let headers = reader.headers()?.clone();
 
-    let schema = Schema::from_header(&headers);
+    let schema = Schema::from_header(&headers)?;
 
     writer.write(headers.iter())?;
     

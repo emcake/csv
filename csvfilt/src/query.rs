@@ -11,29 +11,6 @@ impl ColumnOp {
     {
         self.0
     }
-}
-
-enum Query {
-    Op(ColumnOp),
-    And {
-        q1 : Box<Query>,
-        q2 : Box<Query>
-    },
-    Or {
-        q1 : Box<Query>,
-        q2 : Box<Query>
-    }
-}
-
-use std::error::{Error};
-
-enum Op {
-    Eq,
-    Lt,
-    Gt
-}
-
-impl Query {
 
     fn form_op(schema: &Schema, left:String, op : Op, right:String) -> Result<ColumnOp, Box<Error>>
     {
@@ -44,8 +21,9 @@ impl Query {
                 }
             (Some((idx_a,col_a)), Some((idx_b,col_b))) =>
                 {
-                    if col_a.col_type == col_b.col_type {
-                        let eq = col_a.col_type.make_eq()?;
+                    use std::rc::Rc;
+                    if Rc::ptr_eq(&col_a.col_type,&col_b.col_type) {
+                        let eq = col_a.col_type.eq.0()?;
                         Ok(ColumnOp(Box::new(move |row|{
                             let a = &row[idx_a];
                             let b = &row[idx_b];
@@ -59,28 +37,59 @@ impl Query {
             
             (None, Some((idx,col))) =>
                 {
-                    let eq = col.col_type.make_eq()?;
+                    let eq = col.col_type.eq.1(&left)?;
                     Ok(ColumnOp(Box::new(move |row|{
                         let b = &row[idx];
-                        eq(&left, b)
+                        eq(b)
                     })))
                 }
             (Some((idx,col)), None) =>
                 {
-                    let eq = col.col_type.make_eq()?;
+                    let eq = col.col_type.eq.1(&right)?;
                     Ok(ColumnOp(Box::new(move |row|{
                         let a = &row[idx];
-                        eq(a,&right)
+                        eq(a)
                     })))
                 }
         }
     }
+}
+
+
+enum Op {
+    Eq,
+    Lt,
+    Gt
+}
+enum Query {
+    Op {
+        left : String,
+        op : Op,
+        right : String
+    },
+    And {
+        q1 : Box<Query>,
+        q2 : Box<Query>
+    },
+    Or {
+        q1 : Box<Query>,
+        q2 : Box<Query>
+    }
+}
+
+use std::error::{Error};
+
+impl Query {
+
 
     pub fn from_qstring(qs:&QueryString, s:&Schema) -> Result<Box<Query>, Box<Error>>
     {
         // TODO
-        let op = Query::form_op(s, "stock".to_owned(), Op::Eq, "VOD.L".to_owned())?;
-        Ok(Box::new(Query::Op(op)))
+        //Query::form_op(s, "stock".to_owned(), Op::Eq, "VOD.L".to_owned())?;
+        Ok(Box::new(
+            Query::Op
+                {left : "stock".to_owned(), op : Op::Eq, right : "VOD.L".to_owned()}
+                ))
     }
 }
 
@@ -132,9 +141,9 @@ impl QueryFn {
                         Ok(a || b)
                         }))
                 },
-            Query::Op(col_op) =>
+            Query::Op{ left, op, right } =>
                 {
-                    Ok(col_op.to_fn())
+                    Ok(ColumnOp::form_op(s, left, op, right)?.to_fn())
                 }
         }
     }
@@ -148,7 +157,6 @@ impl QueryFn {
         self.0(row)
     }
 }
-
 
 pub fn parse(q:&QueryString, s:&Schema) -> Result<QueryFn, Box<Error>>
 {
