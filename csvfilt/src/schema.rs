@@ -9,7 +9,7 @@ pub trait SupportedColType : FromStr
     fn parse_err(value:&String) -> Box<Error> {
         From::from(
             format!(
-                "Could not make a {:?} from '{:?}'",
+                "Could not make a {} from '{}'",
                 Self::str_type(),
                 value
             )
@@ -23,11 +23,11 @@ type OpSingle = Result<Box<Fn(&String) -> Result<bool, Box<Error>>>, Box<Error>>
 pub trait EqMaker : SupportedColType {
     fn make_eq() -> OpDouble
     {
-        Err(From::from(format!("{:?} does not support equality comparison", Self::str_type())))
+        Err(From::from(format!("{} does not support equality comparison", Self::str_type())))
     }
     fn make_eq_left_const(left:&String) -> OpSingle
     {
-        Err(From::from(format!("{:?} does not support equality comparison", Self::str_type())))        
+        Err(From::from(format!("{} does not support equality comparison", Self::str_type())))        
     }
 }
 
@@ -118,7 +118,7 @@ impl ColTypes {
     fn find(&self, name:&String) -> Result<Rc<ColType>, Box<Error>>
     {
         let o = self.pickers.iter().find(|p|{ p.name == *name }).map(|p|{ p.clone() });
-        o.ok_or(From::from(format!("unable to find type matching '{:?}'", *name)))
+        o.ok_or(From::from(format!("unable to find type matching '{}'", *name)))
     }
 }
 

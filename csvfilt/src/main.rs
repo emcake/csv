@@ -36,7 +36,7 @@ fn read_args() -> Result<Args, Box<Error>> {
         x => {
             Err(
                 From::from(
-                    format!("Expected 2 args, received {:?} : {:?}", 
+                    format!("Expected 2 args, received {} : {:?}", 
                         x,
                         args
             )))

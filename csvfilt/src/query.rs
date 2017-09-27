@@ -17,7 +17,7 @@ impl ColumnOp {
         match (schema.try_find_col(&left), schema.try_find_col(&right)) {
             (None, None) => // neither are columns, this is probably an error
                 {
-                    Err(From::from(format!("Could not find {:?} or {:?} as a column", left, right)))
+                    Err(From::from(format!("Could not find {} or {} as a column", left, right)))
                 }
             (Some((idx_a,col_a)), Some((idx_b,col_b))) =>
                 {
@@ -31,7 +31,7 @@ impl ColumnOp {
                         })))
                     }
                     else {
-                        Err(From::from(format!("Tried to compare values of {:?} and {:?} but the types don't match", left, right)))
+                        Err(From::from(format!("Tried to compare values of {} and {} but the types don't match", left, right)))
                     }
                 }
             
