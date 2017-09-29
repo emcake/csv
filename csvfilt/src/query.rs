@@ -4,6 +4,38 @@ impl QueryString {
     pub fn new(s:String) -> Self { QueryString(s) }
 }
 
+
+enum Op {
+    Eq,
+    Lt,
+    Gt
+}
+
+use schema::ColType;
+use schema::{OpDouble, OpSingle};
+
+impl ColType {
+
+
+    fn get_for_op(&self, op : Op) -> OpDouble
+    {
+        match op {
+            Op::Eq => self.eq.0(),
+            Op::Gt => self.gt.0(),
+            Op::Lt => self.lt.0()
+        }
+    }
+
+    fn get_for_op_left_baked(&self, op : Op, left:&String) -> OpSingle
+    {
+        match op {
+            Op::Eq => self.eq.1(left),
+            Op::Gt => self.gt.1(left),
+            Op::Lt => self.lt.1(left)
+        }
+    }
+}
+
 struct ColumnOp(Box<Fn(&Vec<String>) -> Result<bool, Box<Error>>>);
 
 impl ColumnOp {
@@ -23,11 +55,11 @@ impl ColumnOp {
                 {
                     use std::rc::Rc;
                     if Rc::ptr_eq(&col_a.col_type,&col_b.col_type) {
-                        let eq = col_a.col_type.eq.0()?;
+                        let op = col_a.col_type.get_for_op(op)?;
                         Ok(ColumnOp(Box::new(move |row|{
-                            let a = &row[idx_a];
-                            let b = &row[idx_b];
-                            eq(a,b)
+                            let a = row[idx_a].trim();
+                            let b = row[idx_b].trim();
+                            op(&a.to_owned(),&b.to_owned())
                         })))
                     }
                     else {
@@ -37,18 +69,24 @@ impl ColumnOp {
             
             (None, Some((idx,col))) =>
                 {
-                    let eq = col.col_type.eq.1(&left)?;
+                    let op = col.col_type.get_for_op_left_baked(op, &left)?;
                     Ok(ColumnOp(Box::new(move |row|{
-                        let b = &row[idx];
-                        eq(b)
+                        let b = row[idx].trim();
+                        op(&b.to_owned())
                     })))
                 }
             (Some((idx,col)), None) =>
                 {
-                    let eq = col.col_type.eq.1(&right)?;
+                    let alternate_op = 
+                        match op { // we need to reverse comparison operators if baking the right param, as we only know how to bake the left
+                            Op::Eq => Op::Eq,
+                            Op::Gt => Op::Lt,
+                            Op::Lt => Op::Gt
+                        };
+                    let op_fn = col.col_type.get_for_op_left_baked(alternate_op, &right)?;
                     Ok(ColumnOp(Box::new(move |row|{
-                        let a = &row[idx];
-                        eq(a)
+                        let a = row[idx].trim();
+                        op_fn(&a.to_owned())
                     })))
                 }
         }
@@ -56,11 +94,6 @@ impl ColumnOp {
 }
 
 
-enum Op {
-    Eq,
-    Lt,
-    Gt
-}
 enum Query {
     Op {
         left : String,
@@ -88,7 +121,7 @@ impl Query {
         //Query::form_op(s, "stock".to_owned(), Op::Eq, "VOD.L".to_owned())?;
         Ok(Box::new(
             Query::Op
-                {left : "stock".to_owned(), op : Op::Eq, right : "VOD.L".to_owned()}
+                {left : "price".to_owned(), op : Op::Lt, right : "100".to_owned()}
                 ))
     }
 }

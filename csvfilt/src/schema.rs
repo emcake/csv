@@ -17,8 +17,8 @@ pub trait SupportedColType : FromStr
     }
 }
 
-type OpDouble = Result<Box<Fn(&String, &String) -> Result<bool, Box<Error>>>, Box<Error>>;
-type OpSingle = Result<Box<Fn(&String) -> Result<bool, Box<Error>>>, Box<Error>>;
+pub type OpDouble = Result<Box<Fn(&String, &String) -> Result<bool, Box<Error>>>, Box<Error>>;
+pub type OpSingle = Result<Box<Fn(&String) -> Result<bool, Box<Error>>>, Box<Error>>;
 
 pub trait EqMaker : SupportedColType {
     fn make_eq() -> OpDouble
@@ -76,7 +76,7 @@ impl<T : SupportedColType + PartialOrd + FromStr + 'static> LtMaker for T
             Box::new(
                 |a,b|{ 
                     let a = a.parse::<T>().map_err(|_|{Self::parse_err(a)})?;
-                    let b = b.parse::<T>().map_err(|_|{Self::parse_err(b)})?;
+                    let b = b.parse::<T>().map_err(|_|{Self::parse_err(b)})?;                
                     Ok(a < b)
                  }
             ))
@@ -105,6 +105,8 @@ pub trait GtMaker : SupportedColType {
     }
 }
 
+use std::fmt::Debug;
+
 impl<T : SupportedColType + PartialOrd + FromStr + 'static> GtMaker for T
 {
     fn make_gt() -> OpDouble
@@ -113,7 +115,7 @@ impl<T : SupportedColType + PartialOrd + FromStr + 'static> GtMaker for T
             Box::new(
                 |a,b|{ 
                     let a = a.parse::<T>().map_err(|_|{Self::parse_err(a)})?;
-                    let b = b.parse::<T>().map_err(|_|{Self::parse_err(b)})?;
+                    let b = b.parse::<T>().map_err(|_|{Self::parse_err(b)})?;           
                     Ok(a > b)
                  }
             ))
