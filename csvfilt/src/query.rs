@@ -140,19 +140,6 @@ impl QueryFn {
                 Box<Error>
                 >
     {
-        /*
-        fn const_const_eq(a:String, b:String) -> Box<Fn(&Vec<String>) -> bool> {
-            let eq = a == b;
-            Box::new(move |row|{eq})
-        };
-        fn const_look_eq(con:String, look:usize) -> Box<Fn(&Vec<String>) -> bool> {
-            Box::new(move |row|{row[look] == con})
-        };
-        fn look_look_eq(look1:usize, look2:usize) -> Box<Fn(&Vec<String>) -> bool> {
-            Box::new(move |row|{row[look1] == row[look2]})
-        };
-        */
-
         match q {
             Query::And {q1, q2} =>
                 {
