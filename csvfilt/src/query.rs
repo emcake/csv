@@ -121,7 +121,7 @@ impl Query {
         //Query::form_op(s, "stock".to_owned(), Op::Eq, "VOD.L".to_owned())?;
         Ok(Box::new(
             Query::Op
-                {left : "price".to_owned(), op : Op::Lt, right : "100".to_owned()}
+                {left : "price".to_owned(), op : Op::Gt, right : "100".to_owned()}
                 ))
     }
 }
