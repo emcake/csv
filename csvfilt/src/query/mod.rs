@@ -1,3 +1,5 @@
+mod tokens;
+
 pub struct QueryString(String);
 
 impl QueryString {
