@@ -5,3 +5,5 @@ authors = ["matt <matt@mattkemp.co.uk>"]
 
 [dependencies]
 csv = "*"
+regex = "*"
+lazy_static = "*"

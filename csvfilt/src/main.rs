@@ -1,4 +1,6 @@
 extern crate csv;
+extern crate regex;
+#[macro_use] extern crate lazy_static;
 
 mod schema;
 mod query;

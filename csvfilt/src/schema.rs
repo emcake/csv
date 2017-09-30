@@ -213,18 +213,36 @@ pub struct ColItem {
     pub col_type : Rc<ColType>
 }
 
+impl ColItem {
+    fn parse(s:&String, types : &ColTypes) -> Result<Self, Box<Error>> 
+    {
+        use regex::Regex;
+        lazy_static! {
+            static ref REGEX: Regex = Regex::new(r"^(?P<colname>\w+)\[(?P<coltype>\w+)\]$").unwrap();
+        }
+        use regex::Captures;
+        let caps = REGEX.captures_iter(s).collect::<Vec<Captures>>();
+        if caps.len() == 1 {
+            let colname = caps[0]["colname"].to_owned();
+            let coltype = caps[0]["coltype"].to_owned();
+            Ok(ColItem { name : colname, col_type : types.find(&coltype)? })
+        }
+        else {
+            Err(From::from(format!("Failed to parse {} to a name/type pair", s)))
+        }
+    }
+}
+
 pub struct Schema (Vec<ColItem>);
 
 impl Schema {
     pub fn from_header(header:&Vec<String>) -> Result<Schema, Box<Error>> {
         let types = ColTypes::make();
 
-        Ok(Schema(vec![
-            ColItem { name : "stock".to_owned(), col_type : types.find(&"string".to_owned())? },
-            ColItem { name : "price".to_owned(), col_type : types.find(&"float".to_owned())? },
-            ColItem { name : "size".to_owned(), col_type :  types.find(&"int".to_owned())? },
-            ColItem { name : "executed".to_owned(), col_type : types.find(&"bool".to_owned())? }
-        ]))
+        let items : Result<Vec<_>,Box<Error>> = 
+            header.iter().map(|c|{ ColItem::parse(c, &types) }).collect();
+
+        Ok(Schema(items?))
     }
 
     pub fn try_find_col(&self, name:&String) -> Option<(usize, &ColItem)> {
