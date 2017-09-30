@@ -1,20 +1,12 @@
 mod tokens;
-
-pub struct QueryString(String);
-
-impl QueryString {
-    pub fn new(s:String) -> Self { QueryString(s) }
-}
-
-
-enum Op {
-    Eq,
-    Lt,
-    Gt
-}
+mod query_tree;
 
 use schema::ColType;
 use schema::{OpDouble, OpSingle};
+
+use self::query_tree::{Op,QueryTree};
+
+use std::error::Error;
 
 impl ColType {
 
@@ -95,45 +87,12 @@ impl ColumnOp {
     }
 }
 
-
-enum Query {
-    Op {
-        left : String,
-        op : Op,
-        right : String
-    },
-    And {
-        q1 : Box<Query>,
-        q2 : Box<Query>
-    },
-    Or {
-        q1 : Box<Query>,
-        q2 : Box<Query>
-    }
-}
-
-use std::error::{Error};
-
-impl Query {
-
-
-    pub fn from_qstring(qs:&QueryString, s:&Schema) -> Result<Box<Query>, Box<Error>>
-    {
-        // TODO
-        //Query::form_op(s, "stock".to_owned(), Op::Eq, "VOD.L".to_owned())?;
-        Ok(Box::new(
-            Query::Op
-                {left : "price".to_owned(), op : Op::Gt, right : "100".to_owned()}
-                ))
-    }
-}
-
 pub struct QueryFn (Box<Fn(&Vec<String>) -> Result<bool, Box<Error>>>);
 
 use schema::Schema;
 
 impl QueryFn {
-    fn from_query_inner(q:Query, s:&Schema) 
+    fn from_query_inner(q:QueryTree, s:&Schema) 
         -> 
             Result<
                 Box<
@@ -143,34 +102,37 @@ impl QueryFn {
                 >
     {
         match q {
-            Query::And {q1, q2} =>
+            QueryTree::And {q1, q2} =>
                 {
                     let a = QueryFn::from_query_inner(*q1, s)?;
                     let b = QueryFn::from_query_inner(*q2, s)?;
                     Ok(Box::new(move |row|{
-                        let a = a(row)?;
-                        let b = b(row)?;
-                        Ok(a && b)
+                        Ok((a(row)?) && (b(row)?))
                         }))
                 },
-            Query::Or {q1, q2} =>
+            QueryTree::Or {q1, q2} =>
                 {
                     let a = QueryFn::from_query_inner(*q1, s)?;
                     let b = QueryFn::from_query_inner(*q2, s)?;
                     Ok(Box::new(move |row|{
-                        let a = a(row)?;
-                        let b = b(row)?;
-                        Ok(a || b)
+                        Ok((a(row)?) || (b(row)?))
                         }))
                 },
-            Query::Op{ left, op, right } =>
+            QueryTree::Not {q} =>
+                {
+                    let f = QueryFn::from_query_inner(*q, s)?;
+                    Ok(Box::new(move |row|{
+                        Ok(!f(row)?)
+                        }))
+                },
+            QueryTree::Op{ left, op, right } =>
                 {
                     Ok(ColumnOp::form_op(s, left, op, right)?.to_fn())
                 }
         }
     }
 
-    fn from_query(q:Query, s:&Schema) -> Result<QueryFn, Box<Error>>{
+    fn from_query(q:QueryTree, s:&Schema) -> Result<QueryFn, Box<Error>>{
         let inner = QueryFn::from_query_inner(q, s)?;
         Ok(QueryFn(inner))
     } 
@@ -180,9 +142,9 @@ impl QueryFn {
     }
 }
 
-pub fn parse(q:&QueryString, s:&Schema) -> Result<QueryFn, Box<Error>>
+pub fn parse(q:&String, s:&Schema) -> Result<QueryFn, Box<Error>>
 {
-    let query = Query::from_qstring(q, s)?;
+    let query = QueryTree::from_qstring(q)?;
 
     QueryFn::from_query(*query, s)
 }

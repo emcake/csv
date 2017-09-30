@@ -12,7 +12,6 @@ use std::process;
 use std::path::PathBuf;
 
 use schema::Schema;
-use query::QueryString;
 
 enum FileSource {
     ReadFromFile(PathBuf)
@@ -20,7 +19,7 @@ enum FileSource {
 
 struct Args {
     source : FileSource,
-    query : QueryString
+    query : String
 }
 
 fn read_args() -> Result<Args, Box<Error>> {
@@ -32,7 +31,7 @@ fn read_args() -> Result<Args, Box<Error>> {
             let p = args[1].clone();
             Ok(Args {
                 source : FileSource::ReadFromFile(From::from(p)), 
-                query : QueryString::new(q.unwrap())
+                query : q.unwrap()
                 })
         }
         x => {
