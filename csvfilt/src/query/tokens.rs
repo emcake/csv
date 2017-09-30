@@ -106,13 +106,18 @@ pub fn tokenise(s : &String) -> Result<Vec<Token>, Box<Error>> {
                         }
                     }
                     x => {
+                        fn is_allowed_in_identifier(c:char) -> bool
+                        {
+                            c.is_alphanumeric() || c == '.' // TODO think here about what is valid
+                        }
+
                         if x.is_whitespace() {
                             // consume, don't use
                             char_stream.next().unwrap();                        
                         }
-                        else if x.is_alphanumeric() {
+                        else if is_allowed_in_identifier(x) { 
                             use std::iter::FromIterator;
-                            let s = String::from_iter(consume_while(&mut char_stream, |c|{ c.is_alphanumeric() }));
+                            let s = String::from_iter(consume_while(&mut char_stream, is_allowed_in_identifier));
                             tokens.push(Token::ConstOrIdentifier(s));
                         }
                         else {
