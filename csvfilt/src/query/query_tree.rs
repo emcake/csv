@@ -23,6 +23,95 @@ pub enum QueryTree {
     }
 }
 
+mod parsing {
+    use std::iter::Peekable;
+    use std::slice::Iter;
+
+    use std::error::Error;
+
+    use query::tokens::Token;
+    use query::query_tree::{QueryTree, Op};
+
+    // S := expr
+    // expr := binop | not | bracketed | and | or
+    // binop := ident op ident
+    // not := !(expr)
+    // bracketed := (expr)
+    // and := expr && expr
+    // or := expr || expr
+    // op := < | > | <= | >= | = | !=
+
+    pub fn choose_expr(p : &mut Peekable<Iter<Token>>) -> Result<Box<QueryTree>, Box<Error>>
+    {
+        match p.peek() {
+            None => Err(From::from("Expected expr, got <EOL>")),
+            Some (&tok) =>
+                match tok {
+                    &Token::ConstOrIdentifier(ref nm) =>
+                        {
+                            p.next().unwrap();
+                            binop(nm.clone(), p)
+                        }
+                    _ =>
+                        unimplemented!()
+                }
+        }
+    }
+
+    enum IntermediateOp {
+        Lt,
+        Gt,
+        LEq,
+        GEq,
+        Eq,
+        NEq
+    }
+
+    fn op (p : &mut Peekable<Iter<Token>>) -> Result<IntermediateOp, Box<Error>>
+    {
+        match p.peek() {
+            None => Err(From::from("Expected op, got <EOL>")),
+            Some (&tok) =>  match tok {
+                &Token::Eq => 
+                    {
+                        p.next().unwrap();
+                        Ok(IntermediateOp::Eq)
+                    }
+                _ => unimplemented!()
+            }
+        }
+    }
+
+    fn ident (p : &mut Peekable<Iter<Token>>) -> Result<String, Box<Error>>
+    {
+        match p.peek() {
+            None => Err(From::from("Expected ident, got <EOL>")),
+            Some (&tok) =>  match tok {
+                &Token::ConstOrIdentifier(ref id) => 
+                    {
+                        p.next().unwrap();
+                        Ok(id.clone())
+                    }
+                x => Err(From::from(format!("Expected ident, got {:?}", *x)))
+            }
+        }
+    }
+
+    fn binop(left : String, p : &mut Peekable<Iter<Token>>) -> Result<Box<QueryTree>, Box<Error>>
+    {
+        let operation = op(p)?;
+        let right = ident(p)?;
+
+        match operation {
+            IntermediateOp::Eq =>
+                Ok(Box::new(
+                    QueryTree::Op {left : left, op : Op::Eq, right : right}
+                        )),
+            _ => unimplemented!()
+        }
+    }
+}
+
 use std::error::{Error};
 
 use query::tokens::{Token, tokenise};
@@ -30,10 +119,8 @@ use query::tokens::{Token, tokenise};
 impl QueryTree {
 
     fn from_tokens(tokens: Vec<Token>) -> Result<Box<QueryTree>, Box<Error>> {
-        Ok(Box::new(
-            QueryTree::Op
-                {left : "price".to_owned(), op : Op::Gt, right : "100".to_owned()}
-                ))
+        let mut peekable = tokens.iter().peekable();
+        parsing::choose_expr(&mut peekable)
     }
 
 
