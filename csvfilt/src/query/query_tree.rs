@@ -35,16 +35,22 @@ mod parsing {
     use query::tokens::Token;
     use query::query_tree::{QueryTree, Op};
 
-    // S := expr
-    // expr := binop | not | bracketed | and | or
-    // binop := ident op ident
+    // S := maybe_and_or
+    // maybe_and_or := expr | and | or
+    // and := S && S
+    // or := S || S
+    // expr := binop | not | bracketed
     // not := !(expr)
     // bracketed := (expr)
-    // and := expr && expr
-    // or := expr || expr
+    // binop := ident op ident
     // op := < | > | <= | >= | = | !=
 
-    pub fn choose_expr(p : &mut Peekable<Iter<Token>>) -> Result<Box<QueryTree>, Box<Error>>
+    pub fn entry(p : &mut Peekable<Iter<Token>>) -> Result<Box<QueryTree>, Box<Error>>
+    {
+        maybe_and_or(p)
+    }    
+
+    pub fn expr(p : &mut Peekable<Iter<Token>>) -> Result<Box<QueryTree>, Box<Error>>
     {
         match p.peek() {
             None => Err(From::from("Expected expr, got <EOL>")),
@@ -55,9 +61,43 @@ mod parsing {
                             p.next().unwrap();
                             binop(nm.clone(), p)
                         }
+                    &Token::Not =>
+                        {
+                            p.next().unwrap();
+                            let inner_q = expr(p)?;
+                            Ok(Box::new(QueryTree::Not { q : inner_q }))
+                        }
                     _ =>
                         unimplemented!()
                 }
+        }
+    }
+
+    pub fn maybe_and_or(p : &mut Peekable<Iter<Token>>) -> Result<Box<QueryTree>, Box<Error>>
+    {
+        let current = expr(p)?;
+        match p.peek() {
+            None => Ok(current),
+            Some (&tok) => match tok {
+                &Token::And => 
+                    {
+                        p.next().unwrap();
+                        let other = expr(p)?;
+                        Ok(Box::new(
+                            QueryTree::And { q1 : current, q2 : other }
+                        ))
+                    }
+                &Token::Or =>
+                    {
+                        p.next().unwrap();
+                        let other = expr(p)?;
+                        Ok(Box::new(
+                            QueryTree::Or { q1 : current, q2 : other }
+                        ))
+                    }
+                _ =>
+                    Ok(current)
+            }
         }
     }
 
@@ -111,7 +151,7 @@ impl QueryTree {
 
     fn from_tokens(tokens: Vec<Token>) -> Result<Box<QueryTree>, Box<Error>> {
         let mut peekable = tokens.iter().peekable();
-        parsing::choose_expr(&mut peekable)
+        parsing::entry(&mut peekable)
     }
 
 
