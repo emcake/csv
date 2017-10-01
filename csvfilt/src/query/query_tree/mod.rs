@@ -1,5 +1,6 @@
 mod parsing;
 
+#[derive(Debug,PartialEq)]
 pub enum Op {
     Eq,
     NotEq,
@@ -9,6 +10,7 @@ pub enum Op {
     GEq
 }
 
+#[derive(Debug,PartialEq)]
 pub enum QueryTree {
     Op {
         left : String,
