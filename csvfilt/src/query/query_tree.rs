@@ -61,23 +61,20 @@ mod parsing {
     enum IntermediateOp {
         Lt,
         Gt,
-        LEq,
-        GEq,
         Eq,
         NEq
     }
 
     fn op (p : &mut Peekable<Iter<Token>>) -> Result<IntermediateOp, Box<Error>>
     {
-        match p.peek() {
+        match p.next() {
             None => Err(From::from("Expected op, got <EOL>")),
-            Some (&tok) =>  match tok {
-                &Token::Eq => 
-                    {
-                        p.next().unwrap();
-                        Ok(IntermediateOp::Eq)
-                    }
-                _ => unimplemented!()
+            Some (ref tok) =>  match tok {
+                &&Token::Eq => Ok(IntermediateOp::Eq),
+                &&Token::NotEq => Ok(IntermediateOp::NEq),
+                &&Token::Lt => Ok(IntermediateOp::Lt),
+                &&Token::Gt => Ok(IntermediateOp::Gt),
+                x => Err(From::from(format!("Expected op, got {:?}", x)))
             }
         }
     }
@@ -106,6 +103,23 @@ mod parsing {
             IntermediateOp::Eq =>
                 Ok(Box::new(
                     QueryTree::Op {left : left, op : Op::Eq, right : right}
+                        )),
+            IntermediateOp::NEq =>
+                {
+                    let eq = Box::new(
+                        QueryTree::Op {left : left, op : Op::Eq, right : right}
+                            );
+                    Ok(Box::new(
+                        QueryTree::Not { q : eq }
+                    ))
+                }
+            IntermediateOp::Lt =>
+                Ok(Box::new(
+                    QueryTree::Op {left : left, op : Op::Lt, right : right}
+                        )),
+            IntermediateOp::Gt =>
+                Ok(Box::new(
+                    QueryTree::Op {left : left, op : Op::Gt, right : right}
                         )),
             _ => unimplemented!()
         }
