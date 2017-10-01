@@ -17,7 +17,9 @@ impl ColType {
             Op::Eq => self.eq.0(),
             Op::Gt => self.gt.0(),
             Op::Lt => self.lt.0(),
-            _ => unimplemented!()
+            Op::NotEq => self.neq.0(),
+            Op::LEq => self.leq.0(),
+            Op::GEq => self.geq.0()
         }
     }
 
@@ -27,7 +29,9 @@ impl ColType {
             Op::Eq => self.eq.1(left),
             Op::Gt => self.gt.1(left),
             Op::Lt => self.lt.1(left),
-            _ => unimplemented!()
+            Op::NotEq => self.neq.1(left),
+            Op::LEq => self.leq.1(left),
+            Op::GEq => self.geq.1(left)
         }
     }
 }

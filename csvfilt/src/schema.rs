@@ -25,7 +25,18 @@ pub trait EqMaker : SupportedColType {
     {
         Err(From::from(format!("{} does not support equality comparison", Self::str_type())))
     }
+
     fn make_eq_left_const(left:&String) -> OpSingle
+    {
+        Err(From::from(format!("{} does not support equality comparison", Self::str_type())))        
+    }
+
+    fn make_neq() -> OpDouble
+    {
+        Err(From::from(format!("{} does not support equality comparison", Self::str_type())))
+    }
+
+    fn make_neq_left_const(left:&String) -> OpSingle
     {
         Err(From::from(format!("{} does not support equality comparison", Self::str_type())))        
     }
@@ -55,6 +66,28 @@ impl<T : SupportedColType + PartialEq + FromStr + 'static> EqMaker for T
                  }
             ))        
     }
+    fn make_neq() -> OpDouble
+    {
+        Ok(
+            Box::new(
+                |a,b|{ 
+                    let a = a.parse::<T>().map_err(|_|{Self::parse_err(a)})?;
+                    let b = b.parse::<T>().map_err(|_|{Self::parse_err(b)})?;
+                    Ok(a != b)
+                 }
+            ))
+    }
+    fn make_neq_left_const(left:&String) -> OpSingle
+    {
+        let left_c = left.parse::<T>().map_err(|_|{Self::parse_err(left)})?;
+        Ok(
+            Box::new(
+                move |x|{ 
+                    let x = x.parse::<T>().map_err(|_|{Self::parse_err(x)})?;
+                    Ok(left_c != x)
+                 }
+            ))        
+    }
 }
 
 pub trait LtMaker : SupportedColType {
@@ -63,6 +96,14 @@ pub trait LtMaker : SupportedColType {
         Err(From::from(format!("{} does not support order comparison", Self::str_type())))
     }
     fn make_lt_left_const(left:&String) -> OpSingle
+    {
+        Err(From::from(format!("{} does not support order comparison", Self::str_type())))        
+    }
+    fn make_leq() -> OpDouble
+    {
+        Err(From::from(format!("{} does not support order comparison", Self::str_type())))
+    }
+    fn make_leq_left_const(left:&String) -> OpSingle
     {
         Err(From::from(format!("{} does not support order comparison", Self::str_type())))        
     }
@@ -92,6 +133,28 @@ impl<T : SupportedColType + PartialOrd + FromStr + 'static> LtMaker for T
                  }
             ))        
     }
+    fn make_leq() -> OpDouble
+    {
+        Ok(
+            Box::new(
+                |a,b|{ 
+                    let a = a.parse::<T>().map_err(|_|{Self::parse_err(a)})?;
+                    let b = b.parse::<T>().map_err(|_|{Self::parse_err(b)})?;                
+                    Ok(a <= b)
+                 }
+            ))
+    }
+    fn make_leq_left_const(left:&String) -> OpSingle
+    {
+        let left_c = left.parse::<T>().map_err(|_|{Self::parse_err(left)})?;
+        Ok(
+            Box::new(
+                move |x|{ 
+                    let x = x.parse::<T>().map_err(|_|{Self::parse_err(x)})?;
+                    Ok(left_c <= x)
+                 }
+            ))        
+    }
 }
 
 pub trait GtMaker : SupportedColType {
@@ -103,9 +166,15 @@ pub trait GtMaker : SupportedColType {
     {
         Err(From::from(format!("{} does not support order comparison", Self::str_type())))        
     }
+    fn make_geq() -> OpDouble
+    {
+        Err(From::from(format!("{} does not support order comparison", Self::str_type())))
+    }
+    fn make_geq_left_const(left:&String) -> OpSingle
+    {
+        Err(From::from(format!("{} does not support order comparison", Self::str_type())))        
+    }
 }
-
-use std::fmt::Debug;
 
 impl<T : SupportedColType + PartialOrd + FromStr + 'static> GtMaker for T
 {
@@ -131,6 +200,28 @@ impl<T : SupportedColType + PartialOrd + FromStr + 'static> GtMaker for T
                  }
             ))        
     }
+    fn make_geq() -> OpDouble
+    {
+        Ok(
+            Box::new(
+                |a,b|{ 
+                    let a = a.parse::<T>().map_err(|_|{Self::parse_err(a)})?;
+                    let b = b.parse::<T>().map_err(|_|{Self::parse_err(b)})?;           
+                    Ok(a >= b)
+                 }
+            ))
+    }
+    fn make_geq_left_const(left:&String) -> OpSingle
+    {
+        let left_c = left.parse::<T>().map_err(|_|{Self::parse_err(left)})?;
+        Ok(
+            Box::new(
+                move |x|{ 
+                    let x = x.parse::<T>().map_err(|_|{Self::parse_err(x)})?;
+                    Ok(left_c >= x)
+                 }
+            ))        
+    }
 }
 
 type OpMakerDouble = Box<Fn() -> OpDouble>;
@@ -141,8 +232,11 @@ type MakerPair = (OpMakerDouble, OpMakerSingle);
 pub struct ColType {
     pub name : String,
     pub eq : MakerPair,
+    pub neq : MakerPair,
     pub lt : MakerPair,
-    pub gt : MakerPair
+    pub leq : MakerPair,
+    pub gt : MakerPair,
+    pub geq : MakerPair
 }
 
 impl ColType {
@@ -151,10 +245,16 @@ impl ColType {
             name : <T as SupportedColType>::str_type(), 
             eq : 
                 (Box::new(<T as EqMaker>::make_eq), Box::new(<T as EqMaker>::make_eq_left_const)), 
+            neq : 
+                (Box::new(<T as EqMaker>::make_neq), Box::new(<T as EqMaker>::make_neq_left_const)), 
             lt : 
                 (Box::new(<T as LtMaker>::make_lt), Box::new(<T as LtMaker>::make_lt_left_const)), 
+            leq : 
+                (Box::new(<T as LtMaker>::make_leq), Box::new(<T as LtMaker>::make_leq_left_const)), 
             gt : 
-                (Box::new(<T as GtMaker>::make_gt), Box::new(<T as GtMaker>::make_gt_left_const)) 
+                (Box::new(<T as GtMaker>::make_gt), Box::new(<T as GtMaker>::make_gt_left_const)), 
+            geq : 
+                (Box::new(<T as GtMaker>::make_geq), Box::new(<T as GtMaker>::make_geq_left_const)) 
             }
     }
 }
