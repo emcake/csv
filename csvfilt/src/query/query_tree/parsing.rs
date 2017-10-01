@@ -11,8 +11,8 @@ use query::query_tree::{QueryTree, Op};
 // and := expr && S
 // or := expr || S
 // expr := binop | not | bracketed
-// not := !(expr)
-// bracketed := (expr)
+// not := !backeted
+// bracketed := (S)
 // binop := ident op ident
 // op := < | > | <= | >= | = | !=
 
