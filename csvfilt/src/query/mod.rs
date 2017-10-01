@@ -16,7 +16,8 @@ impl ColType {
         match op {
             Op::Eq => self.eq.0(),
             Op::Gt => self.gt.0(),
-            Op::Lt => self.lt.0()
+            Op::Lt => self.lt.0(),
+            _ => unimplemented!()
         }
     }
 
@@ -25,7 +26,8 @@ impl ColType {
         match op {
             Op::Eq => self.eq.1(left),
             Op::Gt => self.gt.1(left),
-            Op::Lt => self.lt.1(left)
+            Op::Lt => self.lt.1(left),
+            _ => unimplemented!()
         }
     }
 }
@@ -74,8 +76,11 @@ impl ColumnOp {
                     let alternate_op = 
                         match op { // we need to reverse comparison operators if baking the right param, as we only know how to bake the left
                             Op::Eq => Op::Eq,
+                            Op::NotEq => Op::NotEq,
                             Op::Gt => Op::Lt,
-                            Op::Lt => Op::Gt
+                            Op::Lt => Op::Gt,
+                            Op::LEq => Op::GEq,
+                            Op::GEq => Op::LEq
                         };
                     let op_fn = col.col_type.get_for_op_left_baked(alternate_op, &right)?;
                     Ok(ColumnOp(Box::new(move |row|{

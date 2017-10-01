@@ -8,7 +8,9 @@ pub enum Token {
     Not,
     NotEq,
     Lt,
+    LEq,
     Gt,
+    GEq,
     And,
     Or
 }
@@ -54,7 +56,14 @@ pub fn tokenise(s : &String) -> Result<Vec<Token>, Box<Error>> {
                     }
                     '<' => {
                         char_stream.next().unwrap();
-                        tokens.push(Token::Lt)
+                        match char_stream.peek() {
+                            Some(&'=') => {
+                                char_stream.next().unwrap();
+                                tokens.push(Token::LEq)
+                            }
+                            _ =>
+                                tokens.push(Token::Lt)              
+                        }
                     }
                     '=' => {
                         char_stream.next().unwrap();
@@ -62,7 +71,14 @@ pub fn tokenise(s : &String) -> Result<Vec<Token>, Box<Error>> {
                     }
                     '>' => {
                         char_stream.next().unwrap();
-                        tokens.push(Token::Gt)
+                        match char_stream.peek() {
+                            Some(&'=') => {
+                                char_stream.next().unwrap();
+                                tokens.push(Token::GEq)
+                            }
+                            _ =>
+                                tokens.push(Token::Gt)              
+                        }
                     }
                     '!' => {
                         char_stream.next().unwrap();
@@ -140,7 +156,9 @@ mod tests {
             Token::CloseBracket,
             Token::Eq,
             Token::Lt,
+            Token::LEq,
             Token::Gt,
+            Token::GEq,
             Token::NotEq,
             Token::Not,
             Token::And,
@@ -151,7 +169,7 @@ mod tests {
 
     #[test]
     fn tokenise_recognises_all_chars() {
-        let s = "()=<>!=!&&||abc".to_owned();
+        let s = "()=<<=>>=!=!&&||abc".to_owned();
 
         let actual = tokenise(&s).unwrap();
 
@@ -164,7 +182,7 @@ mod tests {
 
     #[test]
     fn whitespace_doesnt_matter() {
-        let s = "( ) = < > != ! && || abc".to_owned();
+        let s = "( ) = < <= > >= != ! && || abc".to_owned();
 
         let actual = tokenise(&s).unwrap();
 

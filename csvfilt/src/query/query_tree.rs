@@ -1,7 +1,10 @@
 pub enum Op {
     Eq,
+    NotEq,
     Lt,
-    Gt
+    LEq,
+    Gt,
+    GEq
 }
 
 pub enum QueryTree {
@@ -58,22 +61,17 @@ mod parsing {
         }
     }
 
-    enum IntermediateOp {
-        Lt,
-        Gt,
-        Eq,
-        NEq
-    }
-
-    fn op (p : &mut Peekable<Iter<Token>>) -> Result<IntermediateOp, Box<Error>>
+    fn op (p : &mut Peekable<Iter<Token>>) -> Result<Op, Box<Error>>
     {
         match p.next() {
             None => Err(From::from("Expected op, got <EOL>")),
             Some (ref tok) =>  match tok {
-                &&Token::Eq => Ok(IntermediateOp::Eq),
-                &&Token::NotEq => Ok(IntermediateOp::NEq),
-                &&Token::Lt => Ok(IntermediateOp::Lt),
-                &&Token::Gt => Ok(IntermediateOp::Gt),
+                &&Token::Eq => Ok(Op::Eq),
+                &&Token::NotEq => Ok(Op::NotEq),
+                &&Token::Lt => Ok(Op::Lt),
+                &&Token::Gt => Ok(Op::Gt),
+                &&Token::GEq => Ok(Op::GEq),
+                &&Token::LEq => Ok(Op::LEq),
                 x => Err(From::from(format!("Expected op, got {:?}", x)))
             }
         }
@@ -99,30 +97,9 @@ mod parsing {
         let operation = op(p)?;
         let right = ident(p)?;
 
-        match operation {
-            IntermediateOp::Eq =>
-                Ok(Box::new(
-                    QueryTree::Op {left : left, op : Op::Eq, right : right}
-                        )),
-            IntermediateOp::NEq =>
-                {
-                    let eq = Box::new(
-                        QueryTree::Op {left : left, op : Op::Eq, right : right}
-                            );
-                    Ok(Box::new(
-                        QueryTree::Not { q : eq }
-                    ))
-                }
-            IntermediateOp::Lt =>
-                Ok(Box::new(
-                    QueryTree::Op {left : left, op : Op::Lt, right : right}
-                        )),
-            IntermediateOp::Gt =>
-                Ok(Box::new(
-                    QueryTree::Op {left : left, op : Op::Gt, right : right}
-                        )),
-            _ => unimplemented!()
-        }
+        Ok(Box::new(
+            QueryTree::Op {left : left, op : operation, right : right}
+        ))
     }
 }
 
