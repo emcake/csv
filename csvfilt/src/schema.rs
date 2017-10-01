@@ -90,7 +90,7 @@ impl<T : SupportedColType + PartialEq + FromStr + 'static> EqMaker for T
     }
 }
 
-pub trait LtMaker : SupportedColType {
+pub trait CompMaker : SupportedColType {
     fn make_lt() -> OpDouble
     {
         Err(From::from(format!("{} does not support order comparison", Self::str_type())))
@@ -107,9 +107,25 @@ pub trait LtMaker : SupportedColType {
     {
         Err(From::from(format!("{} does not support order comparison", Self::str_type())))        
     }
+    fn make_gt() -> OpDouble
+    {
+        Err(From::from(format!("{} does not support order comparison", Self::str_type())))
+    }
+    fn make_gt_left_const(left:&String) -> OpSingle
+    {
+        Err(From::from(format!("{} does not support order comparison", Self::str_type())))        
+    }
+    fn make_geq() -> OpDouble
+    {
+        Err(From::from(format!("{} does not support order comparison", Self::str_type())))
+    }
+    fn make_geq_left_const(left:&String) -> OpSingle
+    {
+        Err(From::from(format!("{} does not support order comparison", Self::str_type())))        
+    }
 }
 
-impl<T : SupportedColType + PartialOrd + FromStr + 'static> LtMaker for T
+impl<T : SupportedColType + PartialOrd + FromStr + 'static> CompMaker for T
 {
     fn make_lt() -> OpDouble
     {
@@ -155,29 +171,7 @@ impl<T : SupportedColType + PartialOrd + FromStr + 'static> LtMaker for T
                  }
             ))        
     }
-}
 
-pub trait GtMaker : SupportedColType {
-    fn make_gt() -> OpDouble
-    {
-        Err(From::from(format!("{} does not support order comparison", Self::str_type())))
-    }
-    fn make_gt_left_const(left:&String) -> OpSingle
-    {
-        Err(From::from(format!("{} does not support order comparison", Self::str_type())))        
-    }
-    fn make_geq() -> OpDouble
-    {
-        Err(From::from(format!("{} does not support order comparison", Self::str_type())))
-    }
-    fn make_geq_left_const(left:&String) -> OpSingle
-    {
-        Err(From::from(format!("{} does not support order comparison", Self::str_type())))        
-    }
-}
-
-impl<T : SupportedColType + PartialOrd + FromStr + 'static> GtMaker for T
-{
     fn make_gt() -> OpDouble
     {
         Ok(
@@ -240,7 +234,7 @@ pub struct ColType {
 }
 
 impl ColType {
-    fn make<T : EqMaker + LtMaker + GtMaker + SupportedColType + 'static>() -> Self {
+    fn make<T : EqMaker + CompMaker + SupportedColType + 'static>() -> Self {
         ColType { 
             name : <T as SupportedColType>::str_type(), 
             eq : 
@@ -248,13 +242,13 @@ impl ColType {
             neq : 
                 (Box::new(<T as EqMaker>::make_neq), Box::new(<T as EqMaker>::make_neq_left_const)), 
             lt : 
-                (Box::new(<T as LtMaker>::make_lt), Box::new(<T as LtMaker>::make_lt_left_const)), 
+                (Box::new(<T as CompMaker>::make_lt), Box::new(<T as CompMaker>::make_lt_left_const)), 
             leq : 
-                (Box::new(<T as LtMaker>::make_leq), Box::new(<T as LtMaker>::make_leq_left_const)), 
+                (Box::new(<T as CompMaker>::make_leq), Box::new(<T as CompMaker>::make_leq_left_const)), 
             gt : 
-                (Box::new(<T as GtMaker>::make_gt), Box::new(<T as GtMaker>::make_gt_left_const)), 
+                (Box::new(<T as CompMaker>::make_gt), Box::new(<T as CompMaker>::make_gt_left_const)), 
             geq : 
-                (Box::new(<T as GtMaker>::make_geq), Box::new(<T as GtMaker>::make_geq_left_const)) 
+                (Box::new(<T as CompMaker>::make_geq), Box::new(<T as CompMaker>::make_geq_left_const)) 
             }
     }
 }
