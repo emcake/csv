@@ -7,10 +7,9 @@ use std::error::Error;
 use query::tokens::Token;
 use query::query_tree::{QueryTree, Op};
 
-// S := maybe_and_or
-// maybe_and_or := expr | and | or
-// and := S && S
-// or := S || S
+// S := expr | and | or
+// and := expr && S
+// or := expr || S
 // expr := binop | not | bracketed
 // not := !(expr)
 // bracketed := (expr)
@@ -21,6 +20,35 @@ pub fn entry(p : &mut Peekable<Iter<Token>>) -> Result<Box<QueryTree>, Box<Error
 {
     maybe_and_or(p)
 }    
+
+
+pub fn maybe_and_or(p : &mut Peekable<Iter<Token>>) -> Result<Box<QueryTree>, Box<Error>>
+{
+    let current = expr(p)?;
+    match p.peek() {
+        None => Ok(current),
+        Some (&tok) => match tok {
+            &Token::And => 
+                {
+                    p.next().unwrap();
+                    let other = entry(p)?;
+                    Ok(Box::new(
+                        QueryTree::And { q1 : current, q2 : other }
+                    ))
+                }
+            &Token::Or =>
+                {
+                    p.next().unwrap();
+                    let other = entry(p)?;
+                    Ok(Box::new(
+                        QueryTree::Or { q1 : current, q2 : other }
+                    ))
+                }
+            _ =>
+                Ok(current)
+        }
+    }
+}
 
 pub fn expr(p : &mut Peekable<Iter<Token>>) -> Result<Box<QueryTree>, Box<Error>>
 {
@@ -42,34 +70,6 @@ pub fn expr(p : &mut Peekable<Iter<Token>>) -> Result<Box<QueryTree>, Box<Error>
                 _ =>
                     unimplemented!()
             }
-    }
-}
-
-pub fn maybe_and_or(p : &mut Peekable<Iter<Token>>) -> Result<Box<QueryTree>, Box<Error>>
-{
-    let current = expr(p)?;
-    match p.peek() {
-        None => Ok(current),
-        Some (&tok) => match tok {
-            &Token::And => 
-                {
-                    p.next().unwrap();
-                    let other = expr(p)?;
-                    Ok(Box::new(
-                        QueryTree::And { q1 : current, q2 : other }
-                    ))
-                }
-            &Token::Or =>
-                {
-                    p.next().unwrap();
-                    let other = expr(p)?;
-                    Ok(Box::new(
-                        QueryTree::Or { q1 : current, q2 : other }
-                    ))
-                }
-            _ =>
-                Ok(current)
-        }
     }
 }
 
